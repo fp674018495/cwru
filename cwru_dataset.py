@@ -17,8 +17,8 @@ from pathlib import Path
 
 from helper import get_df_all, download
 from train_helper import get_dataloader, fit, validate 
-from  mymodel.CNN_model import  CNN_1D_2L,CNN_1D_3L
-# from  mymodel.informer.model import  informer
+# from  mymodel.CNN_model import  CNN_1D_2L,CNN_1D_3L
+from  mymodel.informer import  Informer
 
 
 working_dir = Path('.')
@@ -64,7 +64,15 @@ valid_ds = TensorDataset(X_valid, y_valid)
 train_dl, valid_dl = get_dataloader(train_ds, valid_ds, batch_size)
 
 ## Instantiate model, optimizer and loss function
-model = CNN_1D_3L(len(features))
+model =  Informer(
+                enc_in=1,
+                dec_in=1, 
+                c_out= 10, 
+                seq_len= 512, 
+                label_len = 512,
+                out_len =10,
+            ).float()
+# model = CNN_1D_3L(len(features))
 model.to(device)
 opt = optim.Adam(model.parameters(), lr=lr, betas=betas, weight_decay=wd)
 loss_func = CrossEntropyLoss()

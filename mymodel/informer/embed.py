@@ -26,7 +26,7 @@ class PositionalEmbedding(nn.Module):
 class TokenEmbedding(nn.Module):
     def __init__(self, c_in, d_model=[128,256,512]):
         super(TokenEmbedding, self).__init__()
-        padding = 1 if torch.__version__>='1.5.0' else 2
+        padding = 0 if torch.__version__>='1.5.0' else 2
         self.tokenConv1 = nn.Conv1d(in_channels=c_in, out_channels=d_model[0], 
                                     kernel_size=3, padding=padding, padding_mode='circular')
         self.tokenConv2 = nn.Conv1d(in_channels=c_in, out_channels=d_model[1], 
@@ -38,9 +38,12 @@ class TokenEmbedding(nn.Module):
                 nn.init.kaiming_normal_(m.weight,mode='fan_in',nonlinearity='leaky_relu')
 
     def forward(self, x):
-        x = self.tokenConv1(x.permute(0, 2, 1)).transpose(1,2)
-        x = self.tokenConv2(x.permute(0, 2, 1)).transpose(1,2)
-        x = self.tokenConv3(x.permute(0, 2, 1)).transpose(1,2)
+        x = self.tokenConv1(x)
+        x = self.tokenConv2(x)
+        x = self.tokenConv3(x)
+        # x = self.tokenConv1(x.permute(0, 2, 1)).transpose(1,2)
+        # x = self.tokenConv2(x.permute(0, 2, 1)).transpose(1,2)
+        # x = self.tokenConv3(x.permute(0, 2, 1)).transpose(1,2)
         return x
 
 class FixedEmbedding(nn.Module):
@@ -110,7 +113,7 @@ class DataEmbedding(nn.Module):
 
         self.dropout = nn.Dropout(p=dropout)
 
-    def forward(self, x, x_mark):
+    def forward(self, x, x_mark=None):
         if x_mark is None:
             x = self.value_embedding(x) + self.position_embedding(x)
         else:
