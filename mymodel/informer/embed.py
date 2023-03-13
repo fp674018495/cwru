@@ -24,17 +24,23 @@ class PositionalEmbedding(nn.Module):
         return self.pe[:, :x.size(1)]
 
 class TokenEmbedding(nn.Module):
-    def __init__(self, c_in, d_model):
+    def __init__(self, c_in, d_model=[128,256,512]):
         super(TokenEmbedding, self).__init__()
         padding = 1 if torch.__version__>='1.5.0' else 2
-        self.tokenConv = nn.Conv1d(in_channels=c_in, out_channels=d_model, 
+        self.tokenConv1 = nn.Conv1d(in_channels=c_in, out_channels=d_model[0], 
+                                    kernel_size=3, padding=padding, padding_mode='circular')
+        self.tokenConv2 = nn.Conv1d(in_channels=c_in, out_channels=d_model[1], 
+                                    kernel_size=3, padding=padding, padding_mode='circular')
+        self.tokenConv3 = nn.Conv1d(in_channels=c_in, out_channels=d_model[2], 
                                     kernel_size=3, padding=padding, padding_mode='circular')
         for m in self.modules():
             if isinstance(m, nn.Conv1d):
                 nn.init.kaiming_normal_(m.weight,mode='fan_in',nonlinearity='leaky_relu')
 
     def forward(self, x):
-        x = self.tokenConv(x.permute(0, 2, 1)).transpose(1,2)
+        x = self.tokenConv1(x.permute(0, 2, 1)).transpose(1,2)
+        x = self.tokenConv2(x.permute(0, 2, 1)).transpose(1,2)
+        x = self.tokenConv3(x.permute(0, 2, 1)).transpose(1,2)
         return x
 
 class FixedEmbedding(nn.Module):
@@ -97,13 +103,17 @@ class DataEmbedding(nn.Module):
     def __init__(self, c_in, d_model, embed_type='fixed', freq='h', dropout=0.1):
         super(DataEmbedding, self).__init__()
 
-        self.value_embedding = TokenEmbedding(c_in=c_in, d_model=d_model)
+        # self.value_embedding = TokenEmbedding(c_in=c_in, d_model=d_model)
+        self.value_embedding = TokenEmbedding(c_in=c_in)
         self.position_embedding = PositionalEmbedding(d_model=d_model)
         self.temporal_embedding = TemporalEmbedding(d_model=d_model, embed_type=embed_type, freq=freq) if embed_type!='timeF' else TimeFeatureEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
 
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x, x_mark):
-        x = self.value_embedding(x) + self.position_embedding(x) + self.temporal_embedding(x_mark)
-        
+        if x_mark is None:
+            x = self.value_embedding(x) + self.position_embedding(x)
+        else:
+            x = self.value_embedding(x) + self.position_embedding(x) + self.temporal_embedding(x_mark)
+
         return self.dropout(x)

@@ -24,7 +24,7 @@ class CNN_1D_2L(nn.Module):
             nn.AvgPool1d(2,stride=2)
         )
         
-        self.linear1 = nn.Linear(self.n_in*128 //4, 4)
+        self.linear1 = nn.Linear(self.n_in*128 //4, 10)
 
         
     def forward(self, x):
@@ -64,7 +64,7 @@ class CNN_1D_3L(nn.Module):
             nn.MaxPool1d(2,stride=2)
         )
         
-        self.linear1 = nn.Linear(self.n_in*128 //8, 4)
+        self.linear1 = nn.Linear(self.n_in*128 //8, 10)
 
         
     def forward(self, x):

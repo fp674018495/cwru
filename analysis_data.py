@@ -5,7 +5,7 @@ from time import time
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import NullFormatter
- 
+import numpy as np 
 from sklearn import manifold, datasets
  
 # # Next line to silence pyflakes. This import is needed.
@@ -42,3 +42,15 @@ ax.yaxis.set_major_formatter(NullFormatter())
 # plt.axis('tight')
  
 plt.show()
+
+def awgn(audio, snr):
+    #在audio y中 添加噪声 噪声强度SNR为int
+    audio_power = audio ** 2 
+    audio_average_power = np.mean(audio_power)
+    audio_average_db = 10 * np.log10(audio_average_power)
+    noise_average_db = audio_average_db - snr
+    noise_average_power = 10 ** (noise_average_db / 10)
+    mean_noise = 0 
+    noise = np.random.normal(mean_noise, np.sqrt(noise_average_power), len(audio))
+    return audio + noise
+

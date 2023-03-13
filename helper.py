@@ -98,7 +98,7 @@ def matfile_to_df(folder_path):
     return df.drop(['BA_time','FE_time', 'RPM', 'ans'], axis=1, errors='ignore')
 
 
-def divide_signal(df, segment_length):
+def divide_signal(df, segment_length,seg_num =None ):
     '''
     This function divide the signal into segments, each with a specific number 
     of points as defined by segment_length. Each segment will be added as an 
@@ -119,14 +119,17 @@ def divide_signal(df, segment_length):
     idx = 0
     for i in range(df.shape[0]):
         n_sample_points = len(df.iloc[i,1])
-        n_segments = n_sample_points // segment_length
+        seg_num = segment_length  if seg_num is None else seg_num
+        n_segments = (n_sample_points -segment_length) // seg_num
+    
         for segment in range(n_segments):
             dic[idx] = {
-                'signal': df.iloc[i,1][segment_length * segment:segment_length * (segment+1)], 
+                'signal': df.iloc[i,1][seg_num * segment:segment * seg_num+ segment_length], 
                 # 'label': df.iloc[i,2],
                 'filename' : df.iloc[i,0]
             }
             idx += 1
+
     df_tmp = pd.DataFrame.from_dict(dic,orient='index')
     return pd.concat(
         [
@@ -148,7 +151,7 @@ def normalize_signal(df):
     df['DE_time'] = (df['DE_time'] - mean) / std
 
 
-def get_df_all(data_path, segment_length=512, normalize=False):
+def get_df_all(data_path, segment_length=512,seg_num=None ,normalize=False):
     '''
     Load, preprocess and return a DataFrame which contains all signals data and
     labels and is ready to be used for model training.
@@ -170,7 +173,7 @@ def get_df_all(data_path, segment_length=512, normalize=False):
 
     if normalize:
         normalize_signal(df)
-    df_processed = divide_signal(df, segment_length)
+    df_processed = divide_signal(df, segment_length,seg_num)
      
     # map_label = {'N':0, 'B':1, 'IR':2, 'OR':3}
     map_label = {'12k_Drive_End_IR014_0_169.mat':5 , '12k_Drive_End_B021_0_222.mat':3 , '12k_Drive_End_OR007@6_0_130.mat': 7, '12k_Drive_End_IR021_0_209.mat': 6, 'normal_0_97.mat': 0, '12k_Drive_End_IR007_0_105.mat':4 , '12k_Drive_End_B007_0_118.mat':1 , '12k_Drive_End_B014_0_185.mat': 2, '12k_Drive_End_OR014@6_0_197.mat': 8, '12k_Drive_End_OR021@6_0_234.mat': 9}
@@ -178,6 +181,7 @@ def get_df_all(data_path, segment_length=512, normalize=False):
 
     
     df_processed['label'] = df_processed['filename'].map(map_label)
+    print(df_processed['label'].value_counts())
     return df_processed
 
 def download(url:str, dest_dir:Path, save_name:str, suffix=None) -> Path:
