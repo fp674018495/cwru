@@ -26,7 +26,7 @@ class PositionalEmbedding(nn.Module):
 class TokenEmbedding(nn.Module):
     def __init__(self, c_in, d_model=[128,256,512]):
         super(TokenEmbedding, self).__init__()
-        padding = 0 if torch.__version__>='1.5.0' else 2
+        padding = 1 if torch.__version__>='1.5.0' else 2
         self.tokenConv1 = nn.Conv1d(in_channels=c_in, out_channels=d_model[0], 
                                     kernel_size=3, padding=padding, padding_mode='circular')
         self.tokenConv2 = nn.Conv1d(in_channels=c_in, out_channels=d_model[1], 
