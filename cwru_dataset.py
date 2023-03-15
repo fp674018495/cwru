@@ -17,7 +17,7 @@ from pathlib import Path
 
 from helper import get_df_all, download
 from train_helper import get_dataloader, fit, validate 
-# from  mymodel.CNN_model import  CNN_1D_2L,CNN_1D_3L
+from  mymodel.CNN_model import  CNN_1D_2L,CNN_1D_3L
 from  mymodel.informer import  Informer
 
 
@@ -25,10 +25,11 @@ working_dir = Path('.')
 DATA_PATH = Path("./data")
 save_model_path = working_dir / 'Model'
 DE_path = DATA_PATH / '12k/0HP'
+# DE_path = './data/12k/0HP'
 random_seed = 7
 batch_size = 16
-epochs = 40
-lr = 0.0001
+epochs = 100
+lr = 0.005
 wd = 1e-5
 betas=(0.99, 0.999)
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")

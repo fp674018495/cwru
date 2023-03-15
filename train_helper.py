@@ -24,6 +24,7 @@ def get_dataloader(train_ds, valid_ds, bs):
 
 def loss_batch(model, loss_func, xb, yb, opt=None):
 
+    # out = model(xb)
     out = model(xb,xb)
     loss = loss_func(out, yb)
     pred = torch.argmax(out, dim=1).cpu().numpy()
