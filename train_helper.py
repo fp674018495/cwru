@@ -7,7 +7,7 @@ from torch import Tensor
 from torch.utils.data import TensorDataset, DataLoader
 from torch import optim
 from torch.nn.modules.loss import CrossEntropyLoss
-
+import json
 from sklearn.metrics import accuracy_score
 import numpy as np
 import pandas as pd
@@ -36,6 +36,23 @@ def loss_batch(model, loss_func, xb, yb, opt=None):
 
     return loss.item(), len(xb), pred
 
+def loss_batch1(model, loss_func, xb, yb, opt=None):
+
+    # out = model(xb)
+    out = model(xb,xb)
+    loss = loss_func(out, yb)
+    pred = torch.argmax(out, dim=1).cpu().numpy()
+
+    if opt is not None:
+        loss.backward()
+        opt.step()
+        opt.zero_grad()
+    with open("res.json",mode="a+") as fp:
+        json.dump(out.cpu().detach().numpy().tolist(),fp)
+        json.dump(yb.cpu().detach().numpy().tolist(),fp)
+        fp.write("\n")
+    return loss.item(), len(xb), pred
+
 def fit(epochs, model, loss_func, opt, train_dl, valid_dl, one_cycle=None, train_metric=False):
 
     print(
@@ -51,7 +68,7 @@ def fit(epochs, model, loss_func, opt, train_dl, valid_dl, one_cycle=None, train
     metrics_dic['val_loss'] = []
     metrics_dic['val_accuracy'] = []
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    
+    best_loss = 0.9
     for epoch in range(epochs):
         # Train
         model.train()
@@ -84,6 +101,9 @@ def fit(epochs, model, loss_func, opt, train_dl, valid_dl, one_cycle=None, train
         metrics_dic['train_loss'].append(train_loss)
         metrics_dic['train_accuracy'].append(train_accuracy)
         
+        if  best_loss > val_loss:
+            best_loss = val_loss
+            torch.save(model.state_dict(), f'Model/{val_accuracy}.pth')
         print(
             f'{epoch} \t', 
             f'{train_loss:.05f}', '\t',
@@ -103,7 +123,7 @@ def validate(model, dl, loss_func):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     for xb, yb in dl: 
         xb, yb = xb.to(device), yb.to(device)
-        loss, batch_size, pred = loss_batch(model, loss_func, xb, yb)
+        loss, batch_size, pred = loss_batch1(model, loss_func, xb, yb)
         total_loss += loss*batch_size
         total_size += batch_size
         predictions.append(pred)

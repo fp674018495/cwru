@@ -1,2 +1,4 @@
 data/*
+**/*.pth
+**/*.pyc
 **/__pycache__

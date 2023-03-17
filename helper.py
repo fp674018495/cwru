@@ -203,3 +203,16 @@ def download(url:str, dest_dir:Path, save_name:str, suffix=None) -> Path:
     else:
         return file_path
     return file_path
+
+
+
+def awgn(audio, snr):
+    #在audio y中 添加噪声 噪声强度SNR为int
+    audio_power = audio ** 2 
+    audio_average_power = np.mean(audio_power)
+    audio_average_db = 10 * np.log10(audio_average_power)
+    noise_average_db = audio_average_db - snr
+    noise_average_power = 10 ** (noise_average_db / 10)
+    mean_noise = 0 
+    noise = np.random.normal(mean_noise, np.sqrt(noise_average_power), len(audio))
+    return audio + noise
