@@ -39,4 +39,4 @@ def draw_matrx(y_test,y_pred):
     
     
     # 7.显示
-    plt.show()
+    # plt.show()

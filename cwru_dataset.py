@@ -21,20 +21,24 @@ from  mymodel.CNN_model import  CNN_1D_2L,CNN_1D_3L
 from  mymodel.informer import  Informer
 from analysis_data import draw_tsne,draw_tsne_json
 from matrix import draw_matrx
+
+
+
 working_dir = Path('.')
 DATA_PATH = Path("./data")
 save_model_path = working_dir / 'Model'
 DE_path = DATA_PATH / '12k/0HP'
 # DE_path = './data/12k/0HP'
-random_seed = 7
+random_seed = 2
 batch_size = 1
-epochs = 50
-lr = 0.001
-wd = 1e-5
+epochs = 500
+lr = 0.0005
+wd = 1e-4
 betas=(0.99, 0.999)
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
-
+number  = 1
+torch.cuda.manual_seed(number)
+torch.manual_seed(number)
 
 for path in [DATA_PATH, save_model_path]:
     if not path.exists():
@@ -85,17 +89,17 @@ model =  Informer(
                 seq_len= 512, 
                 label_len = 512,
                 out_len =10,
+                d_model=16,
+                dropout= 0
             ).float()
 # model = CNN_1D_3L(len(features))
 model.to(device)
 # from torchsummary import summary
 # summary(model,[(1024,1),(1024,1)],depth=4)
 
-# opt = optim.Adam(model.parameters(), lr=lr, betas=betas, weight_decay=wd)
-
-# model, metrics = fit(epochs, model, loss_func, opt, train_dl, valid_dl, train_metric=False)
-
-# torch.save(model.state_dict(), save_model_path / 'model16.pth')
+opt = optim.Adam(model.parameters(), lr=lr, betas=betas, weight_decay=wd)
+model, metrics = fit(epochs, model, loss_func, opt, train_dl, valid_dl, train_metric=False)
+torch.save(model.state_dict(), save_model_path / 'model16.pth')
 
 
 # 测试

@@ -73,12 +73,12 @@ class Informer(nn.Module):
         # self.end_conv2 = nn.Conv1d(in_channels=d_model, out_channels=c_out, kernel_size=1, bias=True)
         self.projection = nn.Linear(d_model, c_out, bias=True)
         
-    def forward(self, x_enc, x_dec, 
+    def forward(self, x_enc, 
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
         if self.is_test:
             save_res("res_first.json",x_enc)
         x_enc = x_enc.view(x_enc.shape[0],x_enc.shape[1],1)
-        x_dec = x_dec.view(x_dec.shape[0],x_dec.shape[1],1)
+        x_dec = x_enc.view(x_enc.shape[0],x_enc.shape[1],1)
         enc_out = self.enc_embedding(x_enc)
         if self.is_test:
             save_res("res_cnn.json",enc_out)

@@ -28,7 +28,7 @@ def draw_tsne(X, color,save_path="./picture/t_sne.png"):
     plt.title("t-SNE (%.2g sec)" % (t1 - t0))
  
     plt.savefig(save_path)
-    plt.show()
+    # plt.show()
 
 def draw_tsne_json(filename="res.json",Y_=None):
     with open(filename,"r") as fp:

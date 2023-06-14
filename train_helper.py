@@ -11,6 +11,7 @@ import json
 from sklearn.metrics import accuracy_score
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 # from one_cycle import OneCycle, update_lr, update_mom
 
 
@@ -24,8 +25,8 @@ def get_dataloader(train_ds, valid_ds, bs):
 
 def loss_batch(model, loss_func, xb, yb, opt=None):
 
-    # out = model(xb)
-    out = model(xb,xb)
+    out = model(xb)
+    # out = model(xb,xb)
     loss = loss_func(out, yb)
     pred = torch.argmax(out, dim=1).cpu().numpy()
 
@@ -39,7 +40,7 @@ def loss_batch(model, loss_func, xb, yb, opt=None):
 def loss_batch1(model, loss_func, xb, yb, opt=None):
 
     # out = model(xb)
-    out = model(xb,xb)
+    out = model(xb)
     loss = loss_func(out, yb)
     pred = torch.argmax(out, dim=1).cpu().numpy()
 
@@ -75,7 +76,7 @@ def fit(epochs, model, loss_func, opt, train_dl, valid_dl, one_cycle=None, train
         train_loss = 0.0
         train_accuracy = 0.0
         num_examples = 0
-        for xb, yb in train_dl:
+        for xb, yb in tqdm(train_dl):
             xb, yb = xb.to(device), yb.to(device)
             loss, batch_size, pred = loss_batch(model, loss_func, xb, yb, opt)
             if train_metric == False:
