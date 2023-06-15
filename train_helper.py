@@ -54,7 +54,25 @@ def loss_batch1(model, loss_func, xb, yb, opt=None):
         fp.write("\n")
     return loss.item(), len(xb), pred
 
-def fit(epochs, model, loss_func, opt, train_dl, valid_dl, one_cycle=None, train_metric=False):
+
+def loss_batch2(model, loss_func, loss_func2,xb,  y_c,y_r, opt=None):
+
+    out = model(xb)
+
+    loss = loss_func(out[0], y_c) +loss_func2(out[1], y_r)
+    
+    pred = torch.argmax(out[0], dim=1).cpu().numpy()
+
+    if opt is not None:
+        loss.backward()
+        opt.step()
+        opt.zero_grad()
+
+    return loss.item(), len(xb), pred
+
+
+
+def fit(epochs, model, loss_func,loss_func2, opt, train_dl, valid_dl, one_cycle=None, train_metric=False):
 
     print(
         'EPOCH', '\t', 
@@ -76,9 +94,9 @@ def fit(epochs, model, loss_func, opt, train_dl, valid_dl, one_cycle=None, train
         train_loss = 0.0
         train_accuracy = 0.0
         num_examples = 0
-        for xb, yb in tqdm(train_dl):
-            xb, yb = xb.to(device), yb.to(device)
-            loss, batch_size, pred = loss_batch(model, loss_func, xb, yb, opt)
+        for xb, y_c,y_r in tqdm(train_dl):
+            xb, y_c,y_r = xb.to(device), y_c.to(device), y_r.to(device)
+            loss, batch_size, pred = loss_batch2(model, loss_func,loss_func2, xb,  y_c,y_r, opt)
             if train_metric == False:
                 train_loss += loss
                 num_examples += batch_size
@@ -91,9 +109,9 @@ def fit(epochs, model, loss_func, opt, train_dl, valid_dl, one_cycle=None, train
         # Validate
         model.eval()
         with torch.no_grad():
-            val_loss, val_accuracy, _ = validate(model, valid_dl, loss_func)
+            val_loss, val_accuracy, _ = validate2(model, valid_dl, loss_func,loss_func2)
             if train_metric:
-                train_loss, train_accuracy, _ = validate(model, train_dl, loss_func)
+                train_loss, train_accuracy, _ = validate2(model, train_dl, loss_func,loss_func2)
             else:
                 train_loss = train_loss / num_examples
 
@@ -129,6 +147,26 @@ def validate(model, dl, loss_func):
         total_size += batch_size
         predictions.append(pred)
         y_true.append(yb.cpu().numpy())
+    mean_loss = total_loss / total_size
+    predictions = np.concatenate(predictions, axis=0)
+    y_true = np.concatenate(y_true, axis=0)
+    accuracy = np.mean((predictions == y_true))
+    return mean_loss, accuracy, (y_true, predictions)
+
+
+def validate2(model, dl, loss_func,loss_func2):
+    total_loss = 0.0
+    total_size = 0
+    predictions = []
+    y_true = []
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    for xb, y_c,y_r in dl: 
+        xb, y_c,y_r = xb.to(device), y_c.to(device), y_r.to(device)
+        loss, batch_size, pred = loss_batch2(model, loss_func,loss_func2, xb,  y_c,y_r)
+        total_loss += loss*batch_size
+        total_size += batch_size
+        predictions.append(pred)
+        y_true.append(y_c.cpu().numpy())
     mean_loss = total_loss / total_size
     predictions = np.concatenate(predictions, axis=0)
     y_true = np.concatenate(y_true, axis=0)

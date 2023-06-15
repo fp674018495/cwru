@@ -77,8 +77,8 @@ class Informer(nn.Module):
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
         if self.is_test:
             save_res("res_first.json",x_enc)
-        x_enc = x_enc.view(x_enc.shape[0],x_enc.shape[1],1)
-        x_dec = x_enc.view(x_enc.shape[0],x_enc.shape[1],1)
+        x_enc = x_enc.view(x_enc.shape[0],x_enc.shape[1],7)
+        x_dec = x_enc.view(x_enc.shape[0],x_enc.shape[1],7)
         enc_out = self.enc_embedding(x_enc)
         if self.is_test:
             save_res("res_cnn.json",enc_out)
@@ -89,7 +89,7 @@ class Informer(nn.Module):
             save_res("res_informer.json",dec_out)
         dec_out = self.projection(dec_out)
         
-        return dec_out[:,-1,:]
+        return dec_out[:, -self.pred_len:,:]
         # dec_out = self.end_conv1(dec_out)
         # dec_out = self.end_conv2(dec_out.transpose(2,1)).transpose(1,2)
         # if self.output_attention:

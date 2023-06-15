@@ -16,26 +16,28 @@ from torch.nn.modules.loss import CrossEntropyLoss
 from pathlib import Path
 
 from helper import get_df_all, download,awgn
-from train_helper import get_dataloader, fit, validate 
+from train_helper import get_dataloader, fit, validate ,validate2
 from  mymodel.CNN_model import  CNN_1D_2L,CNN_1D_3L
 from  mymodel.informer import  Informer
+from  mymodel.TCN import  TCN
 from analysis_data import draw_tsne,draw_tsne_json
 from matrix import draw_matrx
 import os 
 from tqdm import tqdm
 
 print("pid:",os.getpid())
+
 working_dir = Path('.')
 DATA_PATH = Path("./data")
 save_model_path = working_dir / 'Model2'
 PHM_path = DATA_PATH
 
 random_seed = 2
-batch_size = 128
+batch_size = 16
 d_model= 16
 dropout= 0
 
-epochs = 30
+epochs = 50
 lr = 0.00001
 wd = 1e-4
 betas=(0.99, 0.999)
@@ -79,19 +81,21 @@ def divide_label(label):
 def load_phm(file_name):
     df = pd.read_csv(os.path.join(DATA_PATH,file_name+"_wear.csv"),usecols=["flute_1","flute_2","flute_3"])
     labels = df.max(axis=1) 
-    for labels
+    labels ={file_name.replace("c","c_")+"_"+"0"*(3-len(str(i+1)))+str(i+1)+".csv":label  for i,label in enumerate(labels)}
     dic = {}
     idx = 0
     min_f ,max_f=[0]*7,[0]*7
     for i, file in enumerate(tqdm(os.listdir(os.path.join(DATA_PATH,file_name)))):
-        label = divide_label(labels[i])
-        label_y = labels[i]
+        label = divide_label(labels[file])
+        label_y = labels[file]
         df = pd.read_csv(os.path.join(DATA_PATH,file_name,file),header=None)
         for i in range(7):
             min_f[i]= min(df.min()[i],min_f[i])
             max_f[i]= max(df.max()[i],max_f[i])
         dic,idx = divide_signal(df, dic =dic,idx=idx,segment_length=1024,seg_num=2000,label=label,label_y=label_y)
     df_tmp = pd.DataFrame.from_dict(dic,orient='index')
+    print("min_f",min_f)
+    print("max_f",max_f)
     return pd.concat(  [
         df_tmp[['label']],
         (df_tmp[['label_y']]-df_tmp[['label_y']].min())/(df_tmp[['label_y']].max()-df_tmp[['label_y']].min())
@@ -126,58 +130,64 @@ X_test, X_valid, y_test, y_valid = train_test_split(X_valid,
                                                     )
 
 
-X_train = torch.tensor(X_train.values, dtype=torch.float32)
-X_valid = torch.tensor(X_valid.values, dtype=torch.float32)
-y_train = torch.tensor(y_train.values, dtype=torch.long)
-y_valid = torch.tensor(y_valid.values, dtype=torch.long)
+X_train = torch.tensor(X_train, dtype=torch.float32)
+X_valid = torch.tensor(X_valid, dtype=torch.float32)
+y_train_c = torch.tensor(y_train.label.values, dtype=torch.long)
+y_valid_c = torch.tensor(y_valid.label.values, dtype=torch.long)
 
-train_ds = TensorDataset(X_train, y_train)
-valid_ds = TensorDataset(X_valid, y_valid)
+y_train_r = torch.tensor(y_train.label_y.values, dtype=torch.float32)
+y_valid_r = torch.tensor(y_valid.label_y.values, dtype=torch.float32)
+
+train_ds = TensorDataset(X_train, y_train_c,y_train_r)
+valid_ds = TensorDataset(X_valid, y_valid_c,y_valid_r)
 train_dl, valid_dl = get_dataloader(train_ds, valid_ds, batch_size)
 loss_func = CrossEntropyLoss()
+loss_func2 = torch.nn.MSELoss(reduce="mean") 
 
 
 ## Instantiate model, optimizer and loss function
 ########################################################
-model =  Informer(
-                enc_in=input_chanel,
-                dec_in=input_chanel, 
-                c_out= 3, 
-                seq_len= 512, 
-                label_len = 512,
-                out_len =10,
-                d_model=d_model,
-                dropout= dropout
-            ).float()
-
+# model =  Informer(
+#                 enc_in=input_chanel,
+#                 dec_in=input_chanel, 
+#                 c_out= 3, 
+#                 out_len =10,
+#                 seq_len= 512, 
+#                 label_len = 512,
+#                 d_model=d_model,
+#                 dropout= dropout
+#             ).float()
+model=TCN(80,3,[128]*3+[80])
 model.to(device)
 # from torchsummary import summary
 # summary(model,[(1024,1),(1024,1)],depth=4)
 
 opt = optim.Adam(model.parameters(), lr=lr, betas=betas, weight_decay=wd)
-model, metrics = fit(epochs, model, loss_func, opt, train_dl, valid_dl, train_metric=False)
-torch.save(model.state_dict(), save_model_path / 'model16.pth')
+model, metrics = fit(epochs, model, loss_func,loss_func2 ,opt, train_dl, valid_dl, train_metric=False)
+torch.save(model.state_dict(), save_model_path / 'model_tcn.pth')
 
 
 # 测试
 ## Create DataLoader of train and validation set
-X_test = torch.tensor(X_test.values, dtype=torch.float32)
+X_test = torch.tensor(X_test, dtype=torch.float32)
 y_test = torch.tensor(y_test.values, dtype=torch.long)
 test_ds = TensorDataset(X_test, y_test)
 test_dl = DataLoader(test_ds, batch_size=batch_size)
-model =  Informer(
-                enc_in=input_chanel,
-                dec_in=input_chanel, 
-                c_out= 3, 
-                seq_len= 512, 
-                label_len = 512,
-                out_len =10,
-                is_test=True
-            ).float()
+# model =  Informer(
+#                 enc_in=input_chanel,
+#                 dec_in=input_chanel, 
+#                 c_out= 3, 
+#                 seq_len= 512, 
+#                 label_len = 512,
+#                 out_len =10,
+#                 is_test=True
+#             ).float()
+
+model=TCN(80,3,[128]*3+[80])
 model.to(device)
-model.load_state_dict(torch.load(save_model_path / 'model16.pth',map_location=device))
+model.load_state_dict(torch.load(save_model_path / 'model_best.pth',map_location=device))
 model.eval()
-mean_loss, accuracy, (y_true, predictions) = validate(model, test_dl, loss_func)
+mean_loss, accuracy, (y_true, predictions) = validate2(model, test_dl, loss_func)
 draw_matrx(y_true, predictions)
 print("mean_loss:",mean_loss,"accuracy:", accuracy)
 test_YY = draw_tsne_json("res.json")
